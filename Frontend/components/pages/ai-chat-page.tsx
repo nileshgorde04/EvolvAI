@@ -90,7 +90,7 @@ export function AIChatPage() {
       return "Your mood analysis reveals interesting patterns:\n\n**📈 Positive trends:**\n• Higher mood scores on days with 8+ hours sleep\n• Gratitude entries correlate with better days\n• Exercise days show 23% mood improvement\n\n**🎯 Insight:** Your mood is most stable when you maintain consistent sleep and include physical activity. Consider making these non-negotiables in your routine."
     }
 
-    return "That's a great question! Based on your personal development journey, I'd recommend focusing on **consistency over perfection**. Small, daily actions compound into remarkable results over time.\n\nWhat specific area would you like to explore further? I can provide personalized insights based on your journal entries and progress data."
+    return "Hey please enter some other query or ask for help with a specific topic like habits, productivity, or mood analysis."
   }
 
   const handleExamplePrompt = (prompt: string) => {

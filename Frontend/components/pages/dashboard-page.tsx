@@ -45,7 +45,7 @@ export function DashboardPage() {
           <h1 className="text-3xl font-bold text-white">Welcome back, John!</h1>
         </div>
         <p className="text-lg text-gray-300 italic">
-          "The only way to do great work is to love what you do." - Steve Jobs
+          "The only way to do great work is to love what you do." - Nilesh Gorade
         </p>
 
         <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
