@@ -2,7 +2,6 @@ import { Response } from 'express';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { AuthRequest } from '../middleware/authMiddleware';
 
-// It's safer to initialize this inside the try block to catch key errors
 let genAI: GoogleGenerativeAI;
 
 try {
@@ -14,6 +13,8 @@ try {
     console.error("Failed to initialize GoogleGenerativeAI:", error);
 }
 
+// Helper function for retrying with exponential backoff
+const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 /**
  * Handles chat requests from the user.
@@ -21,7 +22,6 @@ try {
  * @param res - The Express response object.
  */
 export const handleChat = async (req: AuthRequest, res: Response) => {
-  // Check if genAI was initialized successfully
   if (!genAI) {
     return res.status(500).json({ message: 'AI service is not configured correctly on the server.' });
   }
@@ -33,23 +33,38 @@ export const handleChat = async (req: AuthRequest, res: Response) => {
     return res.status(400).json({ message: 'Message is required.' });
   }
 
-  try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+  let retries = 3;
+  let delay = 1000; // Start with a 1-second delay
 
-    const prompt = `You are EvolvAI, a helpful and encouraging personal development assistant. 
-    The user you are talking to is named ${userName}. 
-    Based on their question, provide a supportive and insightful response.
-    User's question: "${message}"`;
+  while (retries > 0) {
+    try {
+        const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash-latest' });
 
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const text = response.text();
+        // ... (the rest of the function stays the same)
+        
+        const prompt = `You are EvolvAI, a helpful and encouraging personal development assistant. 
+        The user you are talking to is named ${userName}. 
+        Based on their question, provide a supportive and insightful response.
+        User's question: "${message}"`;
 
-    res.status(200).json({ reply: text });
+        const result = await model.generateContent(prompt);
+        const response = await result.response;
+        const text = response.text();
 
-  } catch (error) {
-    console.error('Error communicating with Gemini API:', error);
-    // Ensure a JSON error response is always sent
-    res.status(500).json({ message: 'An error occurred while communicating with the AI model.' });
+        return res.status(200).json({ reply: text });
+
+    } catch (error: any) {
+      // Check if the error is a 503 Service Unavailable
+      if (error.status === 503 && retries > 1) {
+        console.log(`[AI Controller]: Model is overloaded. Retrying in ${delay / 1000}s... (${retries - 1} retries left)`);
+        await sleep(delay);
+        retries--;
+        delay *= 2; // Double the delay for the next retry
+      } else {
+        // If it's a different error or we're out of retries, fail
+        console.error('Error communicating with Gemini API:', error);
+        return res.status(500).json({ message: 'An error occurred while communicating with the AI model.' });
+      }
+    }
   }
 };
