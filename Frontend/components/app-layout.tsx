@@ -9,16 +9,18 @@ import { ThemeToggle } from "@/components/theme-toggle"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { UserNav } from "@/components/user-nav" // 1. Import the new component
+import { UserNav } from "@/components/user-nav"
 
+// --- THIS IS THE FIX ---
 const navigation = [
-  { name: "Dashboard", href: "/", icon: LayoutDashboard },
+  { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard }, // Changed from "/" to "/dashboard"
   { name: "Journal", href: "/journal", icon: BookOpen },
   { name: "Goals", href: "/goals", icon: Target },
   { name: "AI Chat", href: "/ai-chat", icon: MessageCircle },
   { name: "Profile & Rewards", href: "/profile", icon: User },
   { name: "Settings", href: "/settings", icon: Settings },
 ]
+// -----------------------
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -55,12 +57,10 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             <div className="flex items-center space-x-2 md:space-x-4">
               <ThemeToggle />
               
-              {/* 2. Add Notification Popover */}
               <Popover>
                 <PopoverTrigger asChild>
                   <Button variant="ghost" size="icon" className="relative">
                     <Bell className="h-5 w-5" />
-                    {/* <span className="absolute -top-1 -right-1 h-3 w-3 bg-red-500 rounded-full border-2 border-slate-900"></span> */}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-80 glass-card border-white/10">
@@ -73,7 +73,6 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                 </PopoverContent>
               </Popover>
 
-              {/* 3. Replace the old Avatar with the new UserNav component */}
               <UserNav />
             </div>
           </div>
@@ -116,7 +115,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         {/* Main Content */}
         <main className="flex-1 lg:ml-0">
           <motion.div
-            key={pathname} // Add key here to re-trigger animation on route change
+            key={pathname}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}

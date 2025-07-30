@@ -43,7 +43,7 @@ export function LoginPage() {
         });
 
         setTimeout(() => {
-          router.push('/');
+          router.push('/dashboard');
         }, 1500);
       } else {
         toast.error("Login failed.", {
