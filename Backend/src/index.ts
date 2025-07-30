@@ -6,6 +6,7 @@ import authRoutes from './routes/authRoutes';
 import aiRoutes from './routes/aiRoutes'; // Make sure this line exists
 import journalRoutes from './routes/journalRoutes';
 import goalsRoutes from './routes/goalsRoutes';
+import profileRoutes from './routes/profileRoutes';
 
 // Load environment variables from .env file
 dotenv.config();
@@ -36,6 +37,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/ai', aiRoutes); // And make sure this line exists
 app.use('/api/logs', journalRoutes);
 app.use('/api/goals', goalsRoutes);
+app.use('/api/profile', profileRoutes);
 
 
 // --- Server Activation ---
