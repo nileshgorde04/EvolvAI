@@ -1,21 +1,33 @@
 import express, { Express, Request, Response } from 'express';
 import dotenv from 'dotenv';
 import cors from 'cors';
-import { testDBConnection } from './config/db'; // Import the test function
+import { testDBConnection } from './config/db';
+import authRoutes from './routes/authRoutes';
 
 // Load environment variables from .env file
-dotenv.config(); 
+dotenv.config();
 
 // Initialize the Express application
 const app: Express = express();
 const port = process.env.PORT || 8080;
 
 // --- Middlewares ---
-app.use(cors());
-app.use(express.json()); 
+
+// ** START: CORS Configuration Update **
+// Configure CORS to specifically allow requests from your frontend
+const corsOptions = {
+  origin: 'http://localhost:3000', // The address of your frontend application
+  optionsSuccessStatus: 200 // For legacy browser support
+};
+
+app.use(cors(corsOptions));
+// ** END: CORS Configuration Update **
+
+app.use(express.json());
 
 
 // --- Routes ---
+// Test route
 app.get('/', (req: Request, res: Response) => {
   res.status(200).json({
     message: 'Welcome to the EvolvAI Backend! 🚀',
@@ -23,13 +35,14 @@ app.get('/', (req: Request, res: Response) => {
   });
 });
 
+// Use the authentication routes for any requests to /api/auth
+app.use('/api/auth', authRoutes);
+
 
 // --- Server Activation ---
 const startServer = async () => {
-  // First, test the database connection
   await testDBConnection();
 
-  // If the database connection is successful, start the Express server
   app.listen(port, () => {
     console.log(`[server]: EvolvAI server is running at http://localhost:${port}`);
   });

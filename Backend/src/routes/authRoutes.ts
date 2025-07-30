@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { registerUser, loginUser } from '../controllers/authController';
+import { handleChat } from '../controllers/aiController';
 
 // Create a new router instance
 const router = Router();
@@ -16,6 +17,7 @@ router.post('/register', registerUser);
 // @access  Public
 router.post('/login', loginUser);
 
+router.post('/chat', handleChat);
 
 // Export the router to be used in the main server file
 export default router;
