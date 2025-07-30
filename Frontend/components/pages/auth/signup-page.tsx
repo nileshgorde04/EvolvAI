@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-
 import { useState } from "react"
 import { motion } from "framer-motion"
 import { Button } from "@/components/ui/button"
@@ -10,6 +9,8 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Sparkles, Mail, Lock, Eye, EyeOff, User, Github, CheckCircle, XCircle } from "lucide-react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
+import { toast } from "sonner"
 
 export function SignupPage() {
   const [formData, setFormData] = useState({
@@ -21,6 +22,7 @@ export function SignupPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  const router = useRouter();
 
   const passwordRequirements = {
     length: formData.password.length >= 8,
@@ -35,12 +37,41 @@ export function SignupPage() {
     e.preventDefault()
     setIsLoading(true)
 
-    // Simulate signup
-    setTimeout(() => {
+    try {
+      const response = await fetch('http://localhost:8080/api/auth/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: formData.name,
+          email: formData.email,
+          password: formData.password,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        toast.success("Registered successfully!", {
+          description: "You will be redirected to the login page.",
+        });
+        setTimeout(() => {
+          router.push('/auth/login');
+        }, 2000);
+      } else {
+        toast.error("Registration failed.", {
+          description: data.message || "An unexpected error occurred.",
+        });
+      }
+    } catch (error) {
+      console.error("Registration error:", error);
+      toast.error("Registration failed.", {
+        description: "Could not connect to the server.",
+      });
+    } finally {
       setIsLoading(false)
-      // Redirect to dashboard
-      window.location.href = "/"
-    }, 2000)
+    }
   }
 
   const handleInputChange = (field: string, value: string) => {

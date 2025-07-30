@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-
 import { useState } from "react"
 import { motion } from "framer-motion"
 import { Button } from "@/components/ui/button"
@@ -10,23 +9,55 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Sparkles, Mail, Lock, Eye, EyeOff, Github } from "lucide-react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
+import { toast } from "sonner"
 
 export function LoginPage() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
 
-    // Simulate login
-    setTimeout(() => {
+    try {
+      const response = await fetch('http://localhost:8080/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        // Store the token
+        localStorage.setItem('token', data.token);
+
+        toast.success("Login successful!", {
+          description: "Redirecting to your dashboard...",
+        });
+
+        setTimeout(() => {
+          router.push('/');
+        }, 1500);
+      } else {
+        toast.error("Login failed.", {
+          description: data.message || "Invalid credentials.",
+        });
+      }
+    } catch (error) {
+      console.error("Login error:", error);
+      toast.error("Login failed.", {
+        description: "Could not connect to the server.",
+      });
+    } finally {
       setIsLoading(false)
-      // Redirect to dashboard
-      window.location.href = "/"
-    }, 2000)
+    }
   }
 
   return (

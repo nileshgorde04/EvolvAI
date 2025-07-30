@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Send, Bot, User, Sparkles, Lightbulb, TrendingUp, Target } from "lucide-react"
+import { toast } from "sonner"
 
 interface Message {
   id: string
@@ -28,7 +29,7 @@ export function AIChatPage() {
       id: "1",
       type: "ai",
       content:
-        "Hello! I'm your AI companion here to help you with personal development insights, habit suggestions, and analyzing your progress. How can I assist you today?",
+        "Hello! I'm your AI companion. Ask me anything about your progress, or for tips on personal growth.",
       timestamp: new Date(),
     },
   ])
@@ -45,7 +46,7 @@ export function AIChatPage() {
   }, [messages])
 
   const sendMessage = async (content: string) => {
-    if (!content.trim()) return
+    if (!content.trim() || isTyping) return
 
     const userMessage: Message = {
       id: Date.now().toString(),
@@ -58,43 +59,43 @@ export function AIChatPage() {
     setInputValue("")
     setIsTyping(true)
 
-    // Simulate AI response
-    setTimeout(() => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        toast.error("Authentication error", { description: "You must be logged in to chat." });
+        setIsTyping(false);
+        return;
+      }
+
+      const response = await fetch('http://localhost:8080/api/ai/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ message: content.trim() })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to get AI response.");
+      }
+
+      const data = await response.json();
+
       const aiResponse: Message = {
         id: (Date.now() + 1).toString(),
         type: "ai",
-        content: generateAIResponse(content),
+        content: data.reply,
         timestamp: new Date(),
       }
       setMessages((prev) => [...prev, aiResponse])
+
+    } catch (error: any) {
+      toast.error("Error", { description: error.message || "Could not connect to the AI service." });
+    } finally {
       setIsTyping(false)
-    }, 1500)
-  }
-
-  const generateAIResponse = (userInput: string): string => {
-    const input = userInput.toLowerCase()
-
-    if (input.includes("habit")) {
-      return "Based on your recent journal entries, I'd suggest trying a **5-minute morning meditation**. Your mood patterns show you're most productive when you start the day with intention.\n\n**Why this habit?**\n• Improves focus and clarity\n• Reduces stress levels\n• Takes minimal time to build consistency\n\nWould you like me to help you create a plan to implement this?"
     }
-
-    if (input.includes("week") || input.includes("progress")) {
-      return "Looking at your week, here's what stands out:\n\n**🔥 Strengths:**\n• Maintained a 12-day streak\n• Productivity averaged 7.2/10\n• Mood trend is upward\n\n**💡 Areas for growth:**\n• Screen time increased by 15%\n• Sleep consistency could improve\n\n**Recommendation:** Try setting a digital sunset at 9 PM to improve sleep quality."
-    }
-
-    if (input.includes("productivity")) {
-      return "Here are **3 evidence-based strategies** to boost your productivity:\n\n**1. Time Blocking** ⏰\nSchedule specific tasks in calendar blocks\n\n**2. The 2-Minute Rule** ⚡\nIf it takes less than 2 minutes, do it now\n\n**3. Energy Management** 🔋\nAlign high-focus tasks with your peak energy hours\n\nBased on your journal data, your peak focus time appears to be **9-11 AM**. Would you like help creating a morning routine?"
-    }
-
-    if (input.includes("mood")) {
-      return "Your mood analysis reveals interesting patterns:\n\n**📈 Positive trends:**\n• Higher mood scores on days with 8+ hours sleep\n• Gratitude entries correlate with better days\n• Exercise days show 23% mood improvement\n\n**🎯 Insight:** Your mood is most stable when you maintain consistent sleep and include physical activity. Consider making these non-negotiables in your routine."
-    }
-
-    return "Hey please enter some other query or ask for help with a specific topic like habits, productivity, or mood analysis."
-  }
-
-  const handleExamplePrompt = (prompt: string) => {
-    sendMessage(prompt)
   }
 
   return (
@@ -108,7 +109,6 @@ export function AIChatPage() {
         <h1 className="text-3xl font-bold text-white">AI Chat</h1>
       </div>
 
-      {/* Example Prompts */}
       {messages.length <= 1 && (
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
           <p className="text-gray-400 mb-3">Try asking:</p>
@@ -123,7 +123,7 @@ export function AIChatPage() {
                 <Badge
                   variant="outline"
                   className="cursor-pointer hover:bg-purple-600/20 hover:border-purple-500/50 transition-all"
-                  onClick={() => handleExamplePrompt(prompt.text)}
+                  onClick={() => setInputValue(prompt.text)}
                 >
                   <prompt.icon className="mr-1 h-3 w-3" />
                   {prompt.text}
@@ -134,8 +134,7 @@ export function AIChatPage() {
         </motion.div>
       )}
 
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto space-y-4 mb-4">
+      <div className="flex-1 overflow-y-auto space-y-4 mb-4 pr-4">
         <AnimatePresence>
           {messages.map((message) => (
             <motion.div
@@ -168,30 +167,8 @@ export function AIChatPage() {
                   }`}
                 >
                   <CardContent className="p-4">
-                    <div className="prose prose-invert prose-sm max-w-none">
-                      {message.content.split("\n").map((line, index) => {
-                        if (line.startsWith("**") && line.endsWith("**")) {
-                          return (
-                            <p key={index} className="font-semibold text-white mb-2">
-                              {line.slice(2, -2)}
-                            </p>
-                          )
-                        }
-                        if (line.startsWith("• ")) {
-                          return (
-                            <p key={index} className="text-gray-300 ml-4 mb-1">
-                              {line}
-                            </p>
-                          )
-                        }
-                        return line ? (
-                          <p key={index} className="text-gray-300 mb-2">
-                            {line}
-                          </p>
-                        ) : (
-                          <br key={index} />
-                        )
-                      })}
+                    <div className="prose prose-invert prose-sm max-w-none text-white whitespace-pre-wrap">
+                      {message.content}
                     </div>
                     <p className="text-xs text-gray-500 mt-2">
                       {message.timestamp.toLocaleTimeString([], {
@@ -206,7 +183,6 @@ export function AIChatPage() {
           ))}
         </AnimatePresence>
 
-        {/* Typing Indicator */}
         {isTyping && (
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="flex justify-start">
             <div className="flex items-start space-x-3">
@@ -235,7 +211,6 @@ export function AIChatPage() {
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Input */}
       <Card className="glass-card border-white/10">
         <CardContent className="p-4">
           <div className="flex space-x-2">

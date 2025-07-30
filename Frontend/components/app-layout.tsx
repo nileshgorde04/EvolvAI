@@ -1,8 +1,7 @@
 "use client"
 
 import type React from "react"
-
-import { useState } from "react"
+import { useState, useEffect } from "react" // Import useEffect
 import { motion, AnimatePresence } from "framer-motion"
 import { LayoutDashboard, BookOpen, Target, MessageCircle, User, Settings, Bell, Menu, X, Sparkles } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -22,7 +21,22 @@ const navigation = [
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [isDesktop, setIsDesktop] = useState(false) // State to track if it's desktop view
   const pathname = usePathname()
+
+  // This effect runs only on the client side after the component mounts
+  useEffect(() => {
+    const checkIsDesktop = () => {
+      setIsDesktop(window.innerWidth >= 1024)
+    }
+    // Set the initial value
+    checkIsDesktop()
+    // Add event listener for window resize
+    window.addEventListener('resize', checkIsDesktop)
+    // Cleanup the event listener on component unmount
+    return () => window.removeEventListener('resize', checkIsDesktop)
+  }, [])
+
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
@@ -62,7 +76,8 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       <div className="flex">
         {/* Sidebar */}
         <AnimatePresence>
-          {(sidebarOpen || window.innerWidth >= 1024) && (
+          {/* Use the isDesktop state for conditional rendering */}
+          {(sidebarOpen || isDesktop) && (
             <motion.aside
               initial={{ x: -300 }}
               animate={{ x: 0 }}
@@ -111,7 +126,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       </div>
 
       {/* Mobile overlay */}
-      {sidebarOpen && (
+      {sidebarOpen && !isDesktop && (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
