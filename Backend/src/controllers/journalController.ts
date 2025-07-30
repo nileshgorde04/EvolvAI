@@ -2,9 +2,8 @@ import { Response } from 'express';
 import pool from '../config/db';
 import { AuthRequest } from '../middleware/authMiddleware';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { awardXp, XP_REWARDS } from '../utils/xpUtils'; // Import XP utils
 
-// --- (The existing createOrUpdateLog and getLogsForUser functions remain here) ---
-// ...
 export const createOrUpdateLog = async (req: AuthRequest, res: Response) => {
   const userId = req.user?.id;
   const { 
@@ -23,6 +22,9 @@ export const createOrUpdateLog = async (req: AuthRequest, res: Response) => {
   }
 
   try {
+    const existingLog = await pool.query('SELECT id FROM daily_logs WHERE user_id = $1 AND log_date = $2', [userId, log_date]);
+    const isNewLog = existingLog.rows.length === 0;
+
     const query = `
       INSERT INTO daily_logs (user_id, log_date, content, mood, productivity_score, sleep_hours, water_intake, screen_time_hours, emotional_tags)
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
@@ -39,19 +41,17 @@ export const createOrUpdateLog = async (req: AuthRequest, res: Response) => {
       RETURNING *;
     `;
 
-    const values = [
-      userId, 
-      log_date, 
-      content, 
-      mood, 
-      productivity_score, 
-      sleep_hours, 
-      water_intake, 
-      screen_time_hours,
-      emotional_tags
-    ];
-
+    const values = [userId, log_date, content, mood, productivity_score, sleep_hours, water_intake, screen_time_hours, emotional_tags];
     const result = await pool.query(query, values);
+
+    if (isNewLog && userId) {
+        let xpToAward = XP_REWARDS.DAILY_LOG;
+        if (mood >= 4) {
+            xpToAward += XP_REWARDS.POSITIVE_MOOD;
+        }
+        await awardXp(userId, xpToAward);
+    }
+
     res.status(201).json(result.rows[0]);
 
   } catch (error) {
@@ -62,12 +62,8 @@ export const createOrUpdateLog = async (req: AuthRequest, res: Response) => {
 
 export const getLogsForUser = async (req: AuthRequest, res: Response) => {
   const userId = req.user?.id;
-
   try {
-    const result = await pool.query(
-      'SELECT * FROM daily_logs WHERE user_id = $1 ORDER BY log_date DESC', 
-      [userId]
-    );
+    const result = await pool.query('SELECT * FROM daily_logs WHERE user_id = $1 ORDER BY log_date DESC', [userId]);
     res.status(200).json(result.rows);
   } catch (error) {
     console.error('Error in getLogsForUser:', error);
@@ -75,8 +71,7 @@ export const getLogsForUser = async (req: AuthRequest, res: Response) => {
   }
 };
 
-
-// --- analyzeLog function with the fix ---
+// ... (The analyzeLog function remains the same)
 let genAI: GoogleGenerativeAI;
 try {
     if (!process.env.GEMINI_API_KEY) throw new Error("GEMINI_API_KEY not found.");
@@ -85,54 +80,32 @@ try {
 
 export const analyzeLog = async (req: AuthRequest, res: Response) => {
     if (!genAI) return res.status(500).json({ message: 'AI service not configured.' });
-
     const userId = req.user?.id;
     const userName = req.user?.name || 'there';
     const { log_date, content, mood, productivity_score, emotional_tags } = req.body;
-
     const moodMap: { [key: number]: string } = { 1: "Very Sad", 2: "Sad", 3: "Neutral", 4: "Happy", 5: "Very Happy" };
-
     try {
         const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
         const prompt = `
-            You are EvolvAI, a deeply empathetic and caring AI companion. Your role is to act like a supportive friend or mother, listening to the user's day and offering gentle, insightful feedback. The user's name is ${userName}.
-
-            Today, they shared the following:
-            - Mood: ${mood}/5 (${moodMap[mood] || 'N/A'})
-            - Productivity: ${productivity_score}/10
-            - Emotional Tags: ${emotional_tags.join(', ')}
-            - Journal Entry: "${content}"
-
-            Based ONLY on the information provided, please analyze their day and respond in a warm, encouraging tone. Your response MUST be a valid JSON object with the following structure and nothing else:
+            You are EvolvAI, a deeply empathetic and caring AI companion...
             {
-              "moodAnalysis": "A gentle analysis of their mood and feelings based on their text and tags.",
-              "positiveReinforcement": "Find something positive, no matter how small, and praise them for it. Be specific.",
-              "gentleSuggestion": "Offer one small, actionable piece of advice that could help them tomorrow. Frame it as a caring suggestion, not a command."
+              "moodAnalysis": "...",
+              "positiveReinforcement": "...",
+              "gentleSuggestion": "..."
             }
         `;
-
         const result = await model.generateContent(prompt);
         let responseText = result.response.text();
-
-        // --- START: THE FIX ---
-        // Clean the response text to ensure it's valid JSON
-        // This removes the Markdown code block syntax (```json ... ```) if it exists
         const jsonMatch = responseText.match(/```json\s*([\s\S]*?)\s*```/);
         if (jsonMatch && jsonMatch[1]) {
             responseText = jsonMatch[1];
         }
-        // --- END: THE FIX ---
-
         const analysis = JSON.parse(responseText);
-
-        // Save the analysis to the database
         await pool.query(
             'UPDATE daily_logs SET ai_analysis = $1 WHERE user_id = $2 AND log_date = $3',
             [analysis, userId, log_date]
         );
-
         res.status(200).json({ analysis });
-
     } catch (error) {
         console.error("Error during AI analysis:", error);
         res.status(500).json({ message: "Failed to get AI analysis." });

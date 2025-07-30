@@ -1,53 +1,32 @@
-import express, { Express, Request, Response } from 'express';
+import express from 'express';
 import dotenv from 'dotenv';
 import cors from 'cors';
 import { testDBConnection } from './config/db';
 import authRoutes from './routes/authRoutes';
-import aiRoutes from './routes/aiRoutes'; // Make sure this line exists
+import aiRoutes from './routes/aiRoutes';
 import journalRoutes from './routes/journalRoutes';
 import goalsRoutes from './routes/goalsRoutes';
 import profileRoutes from './routes/profileRoutes';
 
-// Load environment variables from .env file
 dotenv.config();
-
-// Initialize the Express application
-const app: Express = express();
+const app = express();
 const port = process.env.PORT || 8080;
 
-// --- Middlewares ---
-const corsOptions = {
-  origin: 'http://localhost:3000',
-  optionsSuccessStatus: 200
-};
-app.use(cors(corsOptions));
+app.use(cors({ origin: 'http://localhost:3000' }));
 app.use(express.json());
 
-
-
-// --- Routes ---
-app.get('/', (req: Request, res: Response) => {
-  res.status(200).json({
-    message: 'Welcome to the EvolvAI Backend! 🚀',
-    status: 'Server is running healthy.'
-  });
-});
-
+app.get('/', (req, res) => res.status(200).json({ message: 'Welcome to the EvolvAI Backend! 🚀' }));
 app.use('/api/auth', authRoutes);
-app.use('/api/ai', aiRoutes); // And make sure this line exists
+app.use('/api/ai', aiRoutes);
 app.use('/api/logs', journalRoutes);
 app.use('/api/goals', goalsRoutes);
 app.use('/api/profile', profileRoutes);
 
-
-// --- Server Activation ---
 const startServer = async () => {
   await testDBConnection();
-
   app.listen(port, () => {
     console.log(`[server]: EvolvAI server is running at http://localhost:${port}`);
   });
 };
 
-// Start the server
 startServer();
