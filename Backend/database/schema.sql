@@ -88,3 +88,55 @@ CREATE TABLE IF NOT EXISTS daily_logs (
 -- Add an index on user_id for faster querying of a user's logs.
 CREATE INDEX IF NOT EXISTS idx_daily_logs_user_id ON daily_logs(user_id);
 
+
+-- =================================================================
+--  Table: goals
+-- =================================================================
+--  Description: Stores the main goals for each user.
+-- =================================================================
+CREATE TABLE IF NOT EXISTS goals (
+    -- Primary Key for the goal
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+
+    -- Foreign Key linking to the users table.
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+
+    -- The title of the goal (e.g., "Become a DevOps Engineer")
+    title VARCHAR(255) NOT NULL,
+
+    -- The status of the goal
+    status VARCHAR(50) DEFAULT 'in_progress', -- e.g., in_progress, completed, archived
+
+    -- Timestamp of when the goal was created.
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Add an index on user_id for quickly fetching all goals for a user.
+CREATE INDEX IF NOT EXISTS idx_goals_user_id ON goals(user_id);
+
+
+-- =================================================================
+--  Table: tasks
+-- =================================================================
+--  Description: Stores the individual tasks associated with each goal.
+-- =================================================================
+CREATE TABLE IF NOT EXISTS tasks (
+    -- Primary Key for the task
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+
+    -- Foreign Key linking to the goals table.
+    -- If a goal is deleted, all its associated tasks are also deleted.
+    goal_id UUID NOT NULL REFERENCES goals(id) ON DELETE CASCADE,
+
+    -- The description of the task (e.g., "Learn Kubernetes")
+    name VARCHAR(255) NOT NULL,
+
+    -- Boolean to track if the task is completed or not.
+    is_completed BOOLEAN DEFAULT FALSE,
+
+    -- Timestamp of when the task was created.
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Add an index on goal_id for quickly fetching all tasks for a specific goal.
+CREATE INDEX IF NOT EXISTS idx_tasks_goal_id ON tasks(goal_id);
