@@ -16,6 +16,28 @@ interface Message {
   timestamp: Date
 }
 
+// A small component to safely render time on the client
+const ClientTime = ({ timestamp }: { timestamp: Date }) => {
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  if (!isMounted) {
+    return null; // Don't render on the server
+  }
+
+  return (
+     <p className="text-xs text-gray-500 mt-2">
+      {timestamp.toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+      })}
+    </p>
+  )
+}
+
 const examplePrompts = [
   { text: "Suggest new habit", icon: Lightbulb },
   { text: "How was my week?", icon: TrendingUp },
@@ -60,7 +82,6 @@ export function AIChatPage() {
     setIsTyping(true)
 
     try {
-      // Get the token from localStorage
       const token = localStorage.getItem('token');
       if (!token) {
         toast.error("Authentication error", { description: "You must be logged in to chat." });
@@ -68,19 +89,22 @@ export function AIChatPage() {
         return;
       }
 
-      // Send the token in the Authorization header
       const response = await fetch('http://localhost:8080/api/ai/chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}` // Add the token here
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({ message: content.trim() })
       });
-
+      
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to get AI response.");
+        try {
+            const errorData = await response.json();
+            throw new Error(errorData.message || `Request failed with status ${response.status}`);
+        } catch (jsonError) {
+            throw new Error(`Request failed with status ${response.status}. The server returned an unexpected response.`);
+        }
       }
 
       const data = await response.json();
@@ -172,12 +196,8 @@ export function AIChatPage() {
                     <div className="prose prose-invert prose-sm max-w-none text-white whitespace-pre-wrap">
                       {message.content}
                     </div>
-                    <p className="text-xs text-gray-500 mt-2">
-                      {message.timestamp.toLocaleTimeString([], {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
-                    </p>
+                    {/* Use the new ClientTime component here */}
+                    <ClientTime timestamp={message.timestamp} />
                   </CardContent>
                 </Card>
               </div>
