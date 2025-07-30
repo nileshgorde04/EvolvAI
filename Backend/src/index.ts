@@ -3,6 +3,7 @@ import dotenv from 'dotenv';
 import cors from 'cors';
 import { testDBConnection } from './config/db';
 import authRoutes from './routes/authRoutes';
+import aiRoutes from './routes/aiRoutes'; // Make sure this line exists
 
 // Load environment variables from .env file
 dotenv.config();
@@ -12,22 +13,15 @@ const app: Express = express();
 const port = process.env.PORT || 8080;
 
 // --- Middlewares ---
-
-// ** START: CORS Configuration Update **
-// Configure CORS to specifically allow requests from your frontend
 const corsOptions = {
-  origin: 'http://localhost:3000', // The address of your frontend application
-  optionsSuccessStatus: 200 // For legacy browser support
+  origin: 'http://localhost:3000',
+  optionsSuccessStatus: 200
 };
-
 app.use(cors(corsOptions));
-// ** END: CORS Configuration Update **
-
 app.use(express.json());
 
 
 // --- Routes ---
-// Test route
 app.get('/', (req: Request, res: Response) => {
   res.status(200).json({
     message: 'Welcome to the EvolvAI Backend! 🚀',
@@ -35,8 +29,8 @@ app.get('/', (req: Request, res: Response) => {
   });
 });
 
-// Use the authentication routes for any requests to /api/auth
 app.use('/api/auth', authRoutes);
+app.use('/api/ai', aiRoutes); // And make sure this line exists
 
 
 // --- Server Activation ---
