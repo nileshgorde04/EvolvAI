@@ -60,6 +60,7 @@ export function AIChatPage() {
     setIsTyping(true)
 
     try {
+      // Get the token from localStorage
       const token = localStorage.getItem('token');
       if (!token) {
         toast.error("Authentication error", { description: "You must be logged in to chat." });
@@ -67,11 +68,12 @@ export function AIChatPage() {
         return;
       }
 
+      // Send the token in the Authorization header
       const response = await fetch('http://localhost:8080/api/ai/chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${token}` // Add the token here
         },
         body: JSON.stringify({ message: content.trim() })
       });
