@@ -4,6 +4,7 @@ import cors from 'cors';
 import { testDBConnection } from './config/db';
 import authRoutes from './routes/authRoutes';
 import aiRoutes from './routes/aiRoutes'; // Make sure this line exists
+import journalRoutes from './routes/journalRoutes';
 
 // Load environment variables from .env file
 dotenv.config();
@@ -21,6 +22,7 @@ app.use(cors(corsOptions));
 app.use(express.json());
 
 
+
 // --- Routes ---
 app.get('/', (req: Request, res: Response) => {
   res.status(200).json({
@@ -31,6 +33,7 @@ app.get('/', (req: Request, res: Response) => {
 
 app.use('/api/auth', authRoutes);
 app.use('/api/ai', aiRoutes); // And make sure this line exists
+app.use('/api/logs', journalRoutes);
 
 
 // --- Server Activation ---

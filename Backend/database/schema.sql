@@ -46,6 +46,45 @@ CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
 
 
 -- =================================================================
---  (Future tables like daily_logs, goals, etc. will be added here)
+--  Table: daily_logs
 -- =================================================================
+--  Description: Stores the daily journal entries and associated metrics for each user.
+-- =================================================================
+CREATE TABLE IF NOT EXISTS daily_logs (
+    -- Primary Key for the log entry
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+
+    -- Foreign Key linking to the users table.
+    -- ON DELETE CASCADE means if a user is deleted, all their logs are also deleted.
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+
+    -- The date the log is for. We use DATE type for just the day.
+    log_date DATE NOT NULL,
+
+    -- The main content of the journal entry. TEXT allows for long-form writing.
+    content TEXT,
+
+    -- Metrics captured from the user interface
+    mood INT, -- Stored as a number (e.g., 1-5)
+    productivity_score INT, -- Stored as a number (e.g., 1-10)
+    sleep_hours NUMERIC(4, 2), -- e.g., 7.5 hours
+    water_intake INT, -- e.g., 8 glasses
+    screen_time_hours NUMERIC(4, 2), -- e.g., 4.5 hours
+
+    -- Emotional tags selected by the user, stored as an array of text.
+    emotional_tags TEXT[],
+
+    -- This will eventually hold the AI's analysis of the entry.
+    ai_analysis JSONB,
+
+    -- Timestamp of when the log was created or last updated.
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+
+    -- This constraint ensures that a user can only have one log per day.
+    UNIQUE (user_id, log_date)
+);
+
+-- Add an index on user_id for faster querying of a user's logs.
+CREATE INDEX IF NOT EXISTS idx_daily_logs_user_id ON daily_logs(user_id);
 
