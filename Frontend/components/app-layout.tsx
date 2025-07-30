@@ -1,14 +1,15 @@
 "use client"
 
 import type React from "react"
-import { useState, useEffect } from "react" // Import useEffect
+import { useState, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { LayoutDashboard, BookOpen, Target, MessageCircle, User, Settings, Bell, Menu, X, Sparkles } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { ThemeToggle } from "@/components/theme-toggle"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
+import { UserNav } from "@/components/user-nav" // 1. Import the new component
 
 const navigation = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
@@ -21,25 +22,18 @@ const navigation = [
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
-  const [isDesktop, setIsDesktop] = useState(false) // State to track if it's desktop view
+  const [isDesktop, setIsDesktop] = useState(false)
   const pathname = usePathname()
 
-  // This effect runs only on the client side after the component mounts
   useEffect(() => {
-    const checkIsDesktop = () => {
-      setIsDesktop(window.innerWidth >= 1024)
-    }
-    // Set the initial value
+    const checkIsDesktop = () => setIsDesktop(window.innerWidth >= 1024)
     checkIsDesktop()
-    // Add event listener for window resize
     window.addEventListener('resize', checkIsDesktop)
-    // Cleanup the event listener on component unmount
     return () => window.removeEventListener('resize', checkIsDesktop)
   }, [])
 
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-white">
       {/* Top Navigation */}
       <motion.nav
         initial={{ y: -100 }}
@@ -58,16 +52,29 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
               </div>
             </div>
 
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-2 md:space-x-4">
               <ThemeToggle />
-              <Button variant="ghost" size="icon" className="relative">
-                <Bell className="h-5 w-5" />
-                <span className="absolute -top-1 -right-1 h-3 w-3 bg-red-500 rounded-full"></span>
-              </Button>
-              <Avatar>
-                <AvatarImage src="/placeholder.svg?height=32&width=32" />
-                <AvatarFallback>JD</AvatarFallback>
-              </Avatar>
+              
+              {/* 2. Add Notification Popover */}
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="ghost" size="icon" className="relative">
+                    <Bell className="h-5 w-5" />
+                    {/* <span className="absolute -top-1 -right-1 h-3 w-3 bg-red-500 rounded-full border-2 border-slate-900"></span> */}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-80 glass-card border-white/10">
+                  <div className="grid gap-4">
+                    <div className="space-y-2">
+                      <h4 className="font-medium leading-none text-white">Notifications</h4>
+                      <p className="text-sm text-gray-400">You have no new notifications.</p>
+                    </div>
+                  </div>
+                </PopoverContent>
+              </Popover>
+
+              {/* 3. Replace the old Avatar with the new UserNav component */}
+              <UserNav />
             </div>
           </div>
         </div>
@@ -76,12 +83,9 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       <div className="flex">
         {/* Sidebar */}
         <AnimatePresence>
-          {/* Use the isDesktop state for conditional rendering */}
           {(sidebarOpen || isDesktop) && (
             <motion.aside
-              initial={{ x: -300 }}
-              animate={{ x: 0 }}
-              exit={{ x: -300 }}
+              initial={{ x: -300 }} animate={{ x: 0 }} exit={{ x: -300 }}
               transition={{ type: "spring", damping: 25, stiffness: 200 }}
               className="fixed inset-y-0 left-0 z-40 w-64 pt-16 lg:static lg:inset-0 lg:pt-0"
             >
@@ -90,14 +94,11 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                   {navigation.map((item) => {
                     const isActive = pathname === item.href
                     return (
-                      <Link key={item.name} href={item.href}>
+                      <Link key={item.name} href={item.href} onClick={() => setSidebarOpen(false)}>
                         <motion.div
-                          whileHover={{ scale: 1.02 }}
-                          whileTap={{ scale: 0.98 }}
+                          whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
                           className={`flex items-center space-x-3 rounded-xl px-3 py-2 text-sm font-medium transition-colors ${
-                            isActive
-                              ? "bg-purple-600/20 text-purple-300 border border-purple-500/30"
-                              : "text-gray-300 hover:bg-white/5 hover:text-white"
+                            isActive ? "bg-purple-600/20 text-purple-300 border border-purple-500/30" : "text-gray-300 hover:bg-white/5 hover:text-white"
                           }`}
                         >
                           <item.icon className="h-5 w-5" />
@@ -115,6 +116,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         {/* Main Content */}
         <main className="flex-1 lg:ml-0">
           <motion.div
+            key={pathname} // Add key here to re-trigger animation on route change
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
@@ -128,9 +130,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       {/* Mobile overlay */}
       {sidebarOpen && !isDesktop && (
         <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
+          initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
           className="fixed inset-0 z-30 bg-black/50 lg:hidden"
           onClick={() => setSidebarOpen(false)}
         />
