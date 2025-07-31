@@ -1,164 +1,148 @@
 "use client"
 
-import type React from "react"
-
 import { useState } from "react"
 import { motion } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Sparkles, Mail, ArrowLeft, CheckCircle } from "lucide-react"
+import { Sparkles, Mail, ArrowLeft, CheckCircle, Lock, Hash } from "lucide-react"
 import Link from "next/link"
+import { toast } from "sonner"
+import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp"
+import { useRouter } from "next/navigation"
+
+type Step = "enter-email" | "enter-code" | "enter-new-password" | "success";
 
 export function ForgotPasswordPage() {
-  const [email, setEmail] = useState("")
-  const [isLoading, setIsLoading] = useState(false)
-  const [isSubmitted, setIsSubmitted] = useState(false)
+  const [step, setStep] = useState<Step>("enter-email");
+  const [email, setEmail] = useState("");
+  const [code, setCode] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const router = useRouter();
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsLoading(true)
+  const handleEmailSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    try {
+      const response = await fetch('http://localhost:8080/api/auth/forgot-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email })
+      });
+      if (!response.ok) throw new Error("Failed to send code.");
+      toast.success("Code sent!", { description: "Check your email for the 6-digit code." });
+      setStep("enter-code");
+    } catch (error: any) {
+      toast.error("Error", { description: error.message });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-    // Simulate sending reset email
-    setTimeout(() => {
-      setIsLoading(false)
-      setIsSubmitted(true)
-    }, 2000)
+  const handlePasswordReset = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (password !== confirmPassword) {
+      return toast.error("Passwords do not match.");
+    }
+    setIsLoading(true);
+    try {
+      const response = await fetch('http://localhost:8080/api/auth/reset-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, code, password })
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message);
+      
+      toast.success("Password reset successfully!");
+      setStep("success");
+      setTimeout(() => router.push('/auth/login'), 3000);
+
+    } catch (error: any) {
+      toast.error("Reset Failed", { description: error.message });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const renderStep = () => {
+    switch (step) {
+      case "enter-email":
+        return (
+          <form onSubmit={handleEmailSubmit} className="space-y-6">
+            <div>
+              <Label htmlFor="email" className="text-gray-300">Email</Label>
+              <div className="relative mt-2">
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Input id="email" type="email" placeholder="Enter your email" value={email} onChange={(e) => setEmail(e.target.value)} className="pl-10 bg-transparent" required />
+              </div>
+            </div>
+            <Button type="submit" disabled={isLoading} className="w-full bg-gradient-to-r from-purple-600 to-blue-600">{isLoading ? "Sending..." : "Send Reset Code"}</Button>
+          </form>
+        );
+      case "enter-code":
+        return (
+          <div className="flex flex-col items-center space-y-6">
+            <InputOTP maxLength={6} value={code} onChange={setCode}>
+              <InputOTPGroup>{[...Array(6)].map((_, i) => <InputOTPSlot key={i} index={i} />)}</InputOTPGroup>
+            </InputOTP>
+            <Button onClick={() => setStep("enter-new-password")} disabled={code.length < 6} className="w-full">Verify Code</Button>
+          </div>
+        );
+      case "enter-new-password":
+        return (
+          <form onSubmit={handlePasswordReset} className="space-y-6">
+            <div>
+              <Label htmlFor="password">New Password</Label>
+              <div className="relative mt-2"><Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" /><Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="pl-10 bg-transparent" required /></div>
+            </div>
+            <div>
+              <Label htmlFor="confirmPassword">Confirm Password</Label>
+              <div className="relative mt-2"><Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" /><Input id="confirmPassword" type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="pl-10 bg-transparent" required /></div>
+            </div>
+            <Button type="submit" disabled={isLoading || password !== confirmPassword} className="w-full bg-gradient-to-r from-purple-600 to-blue-600">{isLoading ? "Resetting..." : "Reset Password"}</Button>
+          </form>
+        );
+      case "success":
+        return (
+            <div className="text-center text-green-400 space-y-4">
+                <CheckCircle className="h-16 w-16 mx-auto"/>
+                <p className="text-lg">Password reset successfully!</p>
+                <p className="text-sm text-gray-300">Redirecting you to the login page...</p>
+            </div>
+        );
+    }
+  };
+
+  const getTitle = () => {
+      switch(step) {
+          case "enter-email": return "Reset your password";
+          case "enter-code": return "Enter Verification Code";
+          case "enter-new-password": return "Create a New Password";
+          case "success": return "Success!";
+      }
   }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center p-4">
-      {/* Animated Background Elements */}
-      <div className="absolute inset-0 overflow-hidden">
-        <motion.div
-          animate={{
-            scale: [1, 1.2, 1],
-            rotate: [0, 180, 360],
-          }}
-          transition={{
-            duration: 20,
-            repeat: Number.POSITIVE_INFINITY,
-            ease: "linear",
-          }}
-          className="absolute top-1/4 left-1/4 w-64 h-64 bg-purple-600/10 rounded-full blur-3xl"
-        />
-        <motion.div
-          animate={{
-            scale: [1.2, 1, 1.2],
-            rotate: [360, 180, 0],
-          }}
-          transition={{
-            duration: 25,
-            repeat: Number.POSITIVE_INFINITY,
-            ease: "linear",
-          }}
-          className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-blue-600/10 rounded-full blur-3xl"
-        />
-      </div>
-
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.8 }}
-        className="w-full max-w-md relative z-10"
-      >
-        {/* Logo */}
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-md relative z-10">
         <div className="text-center mb-8">
-          <Link href="/landing" className="inline-flex items-center space-x-2">
-            <Sparkles className="h-8 w-8 text-purple-400" />
-            <span className="text-2xl font-bold gradient-text">EvolvAI</span>
-          </Link>
+          <Link href="/" className="inline-flex items-center space-x-2"><Sparkles className="h-8 w-8 text-purple-400" /><span className="text-2xl font-bold gradient-text">EvolvAI</span></Link>
         </div>
-
         <Card className="glass-card border-white/10">
           <CardHeader className="text-center">
-            <CardTitle className="text-2xl font-bold text-white">
-              {isSubmitted ? "Check your email" : "Reset your password"}
-            </CardTitle>
-            <p className="text-gray-400">
-              {isSubmitted
-                ? "We've sent a password reset link to your email address"
-                : "Enter your email address and we'll send you a link to reset your password"}
-            </p>
+            <CardTitle className="text-2xl font-bold text-white">{getTitle()}</CardTitle>
           </CardHeader>
-
           <CardContent>
-            {!isSubmitted ? (
-              <form onSubmit={handleSubmit} className="space-y-6">
-                {/* Email Field */}
-                <div className="space-y-2">
-                  <Label htmlFor="email" className="text-gray-300">
-                    Email
-                  </Label>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                    <Input
-                      id="email"
-                      type="email"
-                      placeholder="Enter your email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className="pl-10 bg-transparent border-white/10 text-white placeholder:text-gray-400 focus:border-purple-500/50"
-                      required
-                    />
-                  </div>
+            {renderStep()}
+            {step !== "success" && (
+                <div className="mt-6 text-center">
+                    <Link href="/auth/login" className="inline-flex items-center text-purple-400 hover:text-purple-300"><ArrowLeft className="w-4 h-4 mr-2" />Back to login</Link>
                 </div>
-
-                {/* Submit Button */}
-                <Button
-                  type="submit"
-                  disabled={isLoading}
-                  className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white"
-                >
-                  {isLoading ? (
-                    <motion.div
-                      animate={{ rotate: 360 }}
-                      transition={{ duration: 1, repeat: Number.POSITIVE_INFINITY, ease: "linear" }}
-                      className="w-4 h-4 border-2 border-white border-t-transparent rounded-full"
-                    />
-                  ) : (
-                    "Send Reset Link"
-                  )}
-                </Button>
-              </form>
-            ) : (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="text-center space-y-6"
-              >
-                <div className="w-16 h-16 bg-green-600/20 rounded-full flex items-center justify-center mx-auto">
-                  <CheckCircle className="h-8 w-8 text-green-400" />
-                </div>
-
-                <div className="space-y-2">
-                  <p className="text-white font-medium">Email sent successfully!</p>
-                  <p className="text-gray-400 text-sm">
-                    Check your inbox and click the link to reset your password. The link will expire in 24 hours.
-                  </p>
-                </div>
-
-                <Button
-                  onClick={() => setIsSubmitted(false)}
-                  variant="outline"
-                  className="w-full bg-transparent border-white/10 text-white hover:bg-white/5"
-                >
-                  Send another email
-                </Button>
-              </motion.div>
             )}
-
-            {/* Back to Login */}
-            <div className="mt-6 text-center">
-              <Link
-                href="/auth/login"
-                className="inline-flex items-center text-purple-400 hover:text-purple-300 transition-colors"
-              >
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Back to login
-              </Link>
-            </div>
           </CardContent>
         </Card>
       </motion.div>
