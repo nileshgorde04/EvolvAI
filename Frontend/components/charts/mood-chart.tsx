@@ -1,16 +1,11 @@
 "use client"
 
 import { Line, XAxis, YAxis, ResponsiveContainer, Tooltip, Area, AreaChart } from "recharts"
+import { format } from 'date-fns';
 
-const data = [
-  { day: "Mon", mood: 3.5, date: "Dec 18" },
-  { day: "Tue", mood: 4.2, date: "Dec 19" },
-  { day: "Wed", mood: 3.8, date: "Dec 20" },
-  { day: "Thu", mood: 4.5, date: "Dec 21" },
-  { day: "Fri", mood: 4.1, date: "Dec 22" },
-  { day: "Sat", mood: 4.8, date: "Dec 23" },
-  { day: "Sun", mood: 4.3, date: "Dec 24" },
-]
+interface MoodChartProps {
+  data: { log_date: string; mood: number }[];
+}
 
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
@@ -27,11 +22,16 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   return null
 }
 
-export function MoodChart() {
+export function MoodChart({ data }: MoodChartProps) {
+  const chartData = data.map(log => ({
+    day: format(new Date(log.log_date), 'E'), // Format date to 'Mon', 'Tue', etc.
+    mood: log.mood
+  }));
+
   return (
     <div className="h-40">
       <ResponsiveContainer width="100%" height="100%">
-        <AreaChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+        <AreaChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
           <defs>
             <linearGradient id="moodGradient" x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor="#8B5CF6" stopOpacity={0.3} />
@@ -42,14 +42,6 @@ export function MoodChart() {
           <YAxis hide domain={[1, 5]} />
           <Tooltip content={<CustomTooltip />} />
           <Area type="monotone" dataKey="mood" stroke="#8B5CF6" strokeWidth={3} fill="url(#moodGradient)" />
-          <Line
-            type="monotone"
-            dataKey="mood"
-            stroke="#8B5CF6"
-            strokeWidth={3}
-            dot={{ fill: "#8B5CF6", strokeWidth: 2, r: 5 }}
-            activeDot={{ r: 7, fill: "#A855F7", stroke: "#8B5CF6", strokeWidth: 2 }}
-          />
         </AreaChart>
       </ResponsiveContainer>
     </div>

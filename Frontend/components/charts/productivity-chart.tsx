@@ -1,16 +1,11 @@
 "use client"
 
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip } from "recharts"
+import { format } from 'date-fns';
 
-const data = [
-  { day: "Mon", score: 8.2 },
-  { day: "Tue", score: 7.5 },
-  { day: "Wed", score: 9.1 },
-  { day: "Thu", score: 6.8 },
-  { day: "Fri", score: 8.7 },
-  { day: "Sat", score: 7.3 },
-  { day: "Sun", score: 6.9 },
-]
+interface ProductivityChartProps {
+  data: { log_date: string; productivity_score: number }[];
+}
 
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
@@ -23,11 +18,16 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   return null
 }
 
-export function ProductivityChart() {
+export function ProductivityChart({ data }: ProductivityChartProps) {
+  const chartData = data.map(log => ({
+      day: format(new Date(log.log_date), 'E'),
+      score: log.productivity_score
+  }));
+
   return (
     <div className="h-40">
       <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+        <BarChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
           <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: "#9CA3AF" }} />
           <YAxis hide />
           <Tooltip content={<CustomTooltip />} />
