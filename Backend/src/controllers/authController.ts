@@ -1,100 +1,113 @@
 import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import pool from '../config/db'; // Our database connection pool
+import crypto from 'crypto';
+import pool from '../config/db';
+import { sendPasswordResetEmail } from '../utils/email';
+
+// --- (registerUser and loginUser functions remain the same) ---
+export const registerUser = async (req: Request, res: Response) => {
+    const { name, email, password } = req.body;
+    if (!name || !email || !password) { return res.status(400).json({ message: 'Please provide all fields.' }); }
+    try {
+        const userExists = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
+        if (userExists.rows.length > 0) { return res.status(409).json({ message: 'User already exists.' }); }
+        const salt = await bcrypt.genSalt(10);
+        const password_hash = await bcrypt.hash(password, salt);
+        const newUser = await pool.query('INSERT INTO users (name, email, password_hash) VALUES ($1, $2, $3) RETURNING id, name, email', [name, email, password_hash]);
+        res.status(201).json(newUser.rows[0]);
+    } catch (error) { res.status(500).json({ message: 'Server error.' }); }
+};
+export const loginUser = async (req: Request, res: Response) => {
+    const { email, password } = req.body;
+    if (!email || !password) { return res.status(400).json({ message: 'Please provide all fields.' }); }
+    try {
+        const userResult = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
+        if (userResult.rows.length === 0) { return res.status(401).json({ message: 'Invalid credentials.' }); }
+        const user = userResult.rows[0];
+        const isMatch = await bcrypt.compare(password, user.password_hash);
+        if (!isMatch) { return res.status(401).json({ message: 'Invalid credentials.' }); }
+        const payload = { user: { id: user.id, name: user.name } };
+        const jwtSecret = process.env.JWT_SECRET!;
+        jwt.sign(payload, jwtSecret, { expiresIn: '7d' }, (err, token) => {
+            if (err) throw err;
+            res.status(200).json({ token });
+        });
+    } catch (error) { res.status(500).json({ message: 'Server error.' }); }
+};
+
+// --- NEW CODE-BASED PASSWORD RESET ---
 
 /**
- * Handles new user registration.
- * @param req - The Express request object. Expects name, email, and password in the body.
- * @param res - The Express response object.
+ * Step 1: User provides email, we generate and "send" a code.
  */
-export const registerUser = async (req: Request, res: Response) => {
-  const { name, email, password } = req.body;
+export const forgotPassword = async (req: Request, res: Response) => {
+    const { email } = req.body;
+    try {
+        const userResult = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
+        if (userResult.rows.length === 0) {
+            return res.status(200).json({ message: 'If a user with that email exists, a code has been sent.' });
+        }
+        
+        const resetCode = Math.floor(100000 + Math.random() * 900000).toString();
+        const tokenExpiry = new Date(Date.now() + 10 * 60 * 1000);
+        const hashedCode = crypto.createHash('sha256').update(resetCode).digest('hex');
 
-  // 1. Basic Validation
-  if (!name || !email || !password) {
-    return res.status(400).json({ message: 'Please provide name, email, and password.' });
-  }
+        await pool.query(
+            'UPDATE users SET reset_password_token = $1, reset_password_expires = $2 WHERE email = $3',
+            [hashedCode, tokenExpiry, email]
+        );
 
-  try {
-    // 2. Check if user already exists
-    const userExists = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
-    if (userExists.rows.length > 0) {
-      return res.status(409).json({ message: 'User with this email already exists.' });
+        // --- SEND THE REAL EMAIL ---
+        await sendPasswordResetEmail({
+            to: email,
+            subject: 'Your EvolvAI Password Reset Code',
+            resetCode: resetCode,
+        });
+        // -------------------------
+
+        res.status(200).json({ message: 'A 6-digit reset code has been sent to your email.' });
+
+    } catch (error) {
+        console.error("Forgot Password Error:", error);
+        res.status(500).json({ message: 'Server error while sending reset code.' });
     }
-
-    // 3. Hash the password for security
-    const salt = await bcrypt.genSalt(10);
-    const password_hash = await bcrypt.hash(password, salt);
-
-    // 4. Insert the new user into the database
-    const newUser = await pool.query(
-      'INSERT INTO users (name, email, password_hash) VALUES ($1, $2, $3) RETURNING id, name, email, created_at',
-      [name, email, password_hash]
-    );
-
-    // 5. Respond with the created user data (excluding the password hash)
-    res.status(201).json(newUser.rows[0]);
-
-  } catch (error) {
-    console.error('Error during user registration:', error);
-    res.status(500).json({ message: 'Server error during registration.' });
-  }
 };
 
 /**
- * Handles user login.
- * @param req - The Express request object. Expects email and password in the body.
- * @param res - The Express response object.
+ * Step 2: User provides the code and new password to reset.
  */
-export const loginUser = async (req: Request, res: Response) => {
-  const { email, password } = req.body;
+export const resetPassword = async (req: Request, res: Response) => {
+    const { email, code, password } = req.body;
 
-  // 1. Basic Validation
-  if (!email || !password) {
-    return res.status(400).json({ message: 'Please provide email and password.' });
-  }
-
-  try {
-    // 2. Find the user by email
-    const userResult = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
-    if (userResult.rows.length === 0) {
-      return res.status(401).json({ message: 'Invalid credentials.' }); // Use a generic message for security
-    }
-    const user = userResult.rows[0];
-
-    // 3. Compare the provided password with the stored hash
-    const isMatch = await bcrypt.compare(password, user.password_hash);
-    if (!isMatch) {
-      return res.status(401).json({ message: 'Invalid credentials.' }); // Use a generic message for security
+    if (!email || !code || !password) {
+        return res.status(400).json({ message: 'Email, code, and new password are required.' });
     }
 
-    // 4. User is valid, create a JWT (JSON Web Token)
-    const payload = {
-      user: {
-        id: user.id,
-        name: user.name,
-      },
-    };
+    try {
+        const hashedCode = crypto.createHash('sha256').update(code).digest('hex');
 
-    const jwtSecret = process.env.JWT_SECRET;
-    if (!jwtSecret) {
-      throw new Error('JWT_SECRET is not defined in the environment variables.');
+        const userResult = await pool.query(
+            'SELECT * FROM users WHERE email = $1 AND reset_password_token = $2 AND reset_password_expires > NOW()',
+            [email, hashedCode]
+        );
+
+        if (userResult.rows.length === 0) {
+            return res.status(400).json({ message: 'Invalid or expired code.' });
+        }
+        const user = userResult.rows[0];
+
+        const salt = await bcrypt.genSalt(10);
+        const password_hash = await bcrypt.hash(password, salt);
+
+        await pool.query(
+            'UPDATE users SET password_hash = $1, reset_password_token = NULL, reset_password_expires = NULL WHERE id = $2',
+            [password_hash, user.id]
+        );
+
+        res.status(200).json({ message: 'Password has been reset successfully.' });
+
+    } catch (error) {
+        res.status(500).json({ message: 'Server error.' });
     }
-
-    jwt.sign(
-      payload,
-      jwtSecret,
-      { expiresIn: '7d' }, // Token expires in 7 days
-      (err, token) => {
-        if (err) throw err;
-        // 5. Send the token back to the client
-        res.status(200).json({ token });
-      }
-    );
-
-  } catch (error) {
-    console.error('Error during user login:', error);
-    res.status(500).json({ message: 'Server error during login.' });
-  }
 };
