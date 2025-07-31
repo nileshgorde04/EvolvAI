@@ -15,12 +15,12 @@ export const sendPasswordResetEmail = async ({ to, subject, resetCode }: EmailOp
       from: 'EvolvAI <onboarding@resend.dev>', // Required by Resend's free tier
       to: [to],
       subject: subject,
-      // Use the 'html' property instead of 'react'
+      // Use the 'html' property with our new HTML string function
       html: EvolvAiResetPasswordEmailHTML({ validationCode: resetCode }),
     });
 
     if (error) {
-      console.error("Error sending email:", error);
+      console.error("Error sending email via Resend:", error);
       throw new Error("Email could not be sent.");
     }
 
@@ -28,6 +28,6 @@ export const sendPasswordResetEmail = async ({ to, subject, resetCode }: EmailOp
     return data;
   } catch (error) {
     console.error("Caught an exception in sendPasswordResetEmail:", error);
-    throw error;
+    throw error; // Re-throw the error to be caught by the controller
   }
 };
