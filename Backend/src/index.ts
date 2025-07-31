@@ -7,6 +7,7 @@ import aiRoutes from './routes/aiRoutes';
 import journalRoutes from './routes/journalRoutes';
 import goalsRoutes from './routes/goalsRoutes';
 import profileRoutes from './routes/profileRoutes';
+import settingsRoutes from './routes/settingsRoutes';
 
 dotenv.config();
 const app = express();
@@ -21,6 +22,7 @@ app.use('/api/ai', aiRoutes);
 app.use('/api/logs', journalRoutes);
 app.use('/api/goals', goalsRoutes);
 app.use('/api/profile', profileRoutes);
+app.use('/api/settings', settingsRoutes);
 
 const startServer = async () => {
   await testDBConnection();
