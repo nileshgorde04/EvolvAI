@@ -8,6 +8,7 @@ import journalRoutes from './routes/journalRoutes';
 import goalsRoutes from './routes/goalsRoutes';
 import profileRoutes from './routes/profileRoutes';
 import settingsRoutes from './routes/settingsRoutes';
+import dashboardRoutes from './routes/dashboardRoutes'; 
 
 dotenv.config();
 const app = express();
@@ -23,6 +24,7 @@ app.use('/api/logs', journalRoutes);
 app.use('/api/goals', goalsRoutes);
 app.use('/api/profile', profileRoutes);
 app.use('/api/settings', settingsRoutes);
+app.use('/api/dashboard', dashboardRoutes);
 
 const startServer = async () => {
   await testDBConnection();
