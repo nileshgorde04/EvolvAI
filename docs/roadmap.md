@@ -11,3 +11,4 @@ EvolvAI has a solid foundation, but there are many exciting features planned for
 -   **Mobile App:** Develop native mobile applications for iOS and Android to provide a seamless, on-the-go experience.
 
 -   **Integrations:** Allow users to connect with other services like Google Calendar (to analyze how events affect their mood) or fitness trackers (to correlate physical activity with well-being).
+
