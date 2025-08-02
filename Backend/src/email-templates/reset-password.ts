@@ -1,7 +1,6 @@
 interface EmailTemplateProps {
   validationCode: string;
 }
-
 /**
  * Generates the HTML content for the password reset email.
  * @param validationCode The 6-digit code for the user.
