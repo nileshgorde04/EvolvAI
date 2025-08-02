@@ -66,7 +66,6 @@ CREATE TABLE tasks (
     name VARCHAR(255) NOT NULL,
     is_completed BOOLEAN DEFAULT FALSE
 );
-
 ```
 
     reset_password_token TEXT,
