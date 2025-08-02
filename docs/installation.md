@@ -15,7 +15,7 @@ Follow these instructions to get a copy of the project up and running on your lo
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/your-username/EvolvAI.git
+https://github.com/nileshgorde04/EvolvAI.git
 cd EvolvAI
 ```
 # Navigate to the Backend directory
