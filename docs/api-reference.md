@@ -20,3 +20,4 @@ All API endpoints are prefixed with `/api`. Private routes require a valid JWT i
 | `GET`    | `/settings/export`            | Export all user data as JSON.              | Private |
 | `DELETE` | `/settings/delete-all`        | Delete all of a user's data.               | Private |
 | `GET`    | `/dashboard`                  | Get aggregated data for the dashboard.     | Private |
+
