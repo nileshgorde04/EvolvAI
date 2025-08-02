@@ -17,3 +17,4 @@ EvolvAI is packed with features designed to provide a comprehensive and engaging
 -   ⚙️ **Functional Settings:** A complete settings page that allows users to manage their theme, export all their data as a JSON file, and securely delete all their information from the database.
 
 -   🎨 **Stunning UI/UX:** A beautiful, modern interface built with Tailwind CSS and shadcn/ui, featuring a "glassmorphism" aesthetic, fluid animations, and a fully responsive design.
+
