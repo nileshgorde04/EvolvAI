@@ -57,4 +57,3 @@ GEMINI_API_KEY="YOUR_GEMINI_API_KEY"
 
 ### Your API key from Resend for sending emails
 RESEND_API_KEY="YOUR_RESEND_API_KEY"
-
