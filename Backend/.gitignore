@@ -21,6 +21,7 @@ yarn-error.log*
 *.tsbuildinfo
 
 # IDE and OS generated files
+
 .vscode/
 .idea/
 .DS_Store
