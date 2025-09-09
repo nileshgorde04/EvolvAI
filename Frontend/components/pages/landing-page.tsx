@@ -32,19 +32,19 @@ const features = [
 
 const testimonials = [
   {
-    name: "Sarah Chen",
+    name: "Nilesh Gorade",
     role: "Product Manager",
     content: "EvolvAI transformed how I approach personal growth. The AI insights are incredibly accurate and helpful.",
     rating: 5,
   },
   {
-    name: "Marcus Rodriguez",
+    name: "Mrudula Deshmukh",
     role: "Software Engineer",
     content: "Finally, a journaling app that actually helps me understand my patterns and improve consistently.",
     rating: 5,
   },
   {
-    name: "Emily Watson",
+    name: "Paras Kolape",
     role: "Designer",
     content: "The interface is beautiful and the habit tracking keeps me accountable. Love the gamification aspect!",
     rating: 5,
